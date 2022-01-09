@@ -12,9 +12,9 @@ import java.util.Map;
 
 public class CSVReader {
 
-	public Map<List<Integer>, String> testReader() {
+	public Map<List<Integer>, List<Integer>> testReader() {
 
-		Map<List<Integer>, String> pixelMap = new HashMap<List<Integer>, String>();
+		Map<List<Integer>, List<Integer>> pixelMap = new HashMap<List<Integer>, List<Integer>>();
 
 		// read 393.csv
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -30,15 +30,23 @@ public class CSVReader {
 					// convert array elements to variables
 					int columnNumber = Integer.parseInt(data[0]);
 					int rowNumber = Integer.parseInt(data[1]);
-					String colorName = data[2];
+					int redNumber = Integer.parseInt(data[2]);
+					int greenNumber = Integer.parseInt(data[3]);
+					int blueNumber = Integer.parseInt(data[4]);
 
 					// create a list with key variables
 					List<Integer> keysList = new ArrayList<Integer>();
 					keysList.add(columnNumber);
 					keysList.add(rowNumber);
+					
+					// create a list with value variables
+					List<Integer> valuesList = new ArrayList<Integer>();
+					valuesList.add(redNumber);
+					valuesList.add(greenNumber);
+					valuesList.add(blueNumber);
 
 					// put pixelMap
-					pixelMap.put(keysList, colorName);
+					pixelMap.put(keysList, valuesList);
 
 				}
 				index++;
