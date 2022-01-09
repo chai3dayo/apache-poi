@@ -3,18 +3,22 @@ package com.example.demo;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.poi.hssf.usermodel.HSSFPalette;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
-import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import com.example.demo.model.RGBColor;
 import com.example.demo.util.CSVReader;
 
 public class PoiTestApplication {
@@ -24,40 +28,55 @@ public class PoiTestApplication {
 		// *optional* configure output directory
 		String outPath = "D:\\out.xlsx";
 
-		// define XSSF Workbook
-		Workbook book = null;
+		// define HSSF Workbook
+		Workbook xssfBook = null;
+		HSSFWorkbook hssfBook = null;
+		CellStyle oneStyle = null;
 
 		try (FileOutputStream out = new FileOutputStream(outPath)) {
-			book = new SXSSFWorkbook();
-
 			// define XSSF sheet, row, cell
-			Sheet sheet;
-			sheet = book.createSheet();
-			book.setSheetName(0, "testdayo");
+			xssfBook = new XSSFWorkbook();
+			Sheet xssfSheet = xssfBook.createSheet();
+			Row xssfRow = null;
+			Cell xssfCell = null;
 
-			Row row;
+			xssfBook.setSheetName(0, "work");
+			xssfSheet.setZoom(10);
 
-			Cell cell = null;
+			// HSSFColorPaletteを使うために仮のHSSFオブジェクトを作る
+			hssfBook = new HSSFWorkbook();
+
+			oneStyle = xssfBook.createCellStyle();
+
+			// カラーパレットを読み込む
+			Map<Short, CellStyle> paletteMap = new HashMap<Short, CellStyle>();
+			for (short i = 0; i < 65; i++) {
+				CellStyle tmpStyle = xssfBook.createCellStyle();
+				tmpStyle.setFillForegroundColor(i);
+				tmpStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+				paletteMap.put(i, tmpStyle);
+			}
+
 			int colNumber = 0;
 
 			// define outer frame
-			int maxRowNumber = 30;
-			int maxColNumber = 30;
+			int maxRowNumber = 331;
+			int maxColNumber = 440;
 
 			// adjust cell width
-			for (int i = 0; i < maxRowNumber; i++) {
-				sheet.setColumnWidth(i, 768);
+			for (int i = 0; i < maxColNumber; i++) {
+				xssfSheet.setColumnWidth(i, 768);
 			}
 
 			// read pixel information from 393.csv(fixed)
 			CSVReader reader = new CSVReader();
-			Map<List<Integer>, String> pixelMap = reader.testReader();
+			Map<List<Integer>, RGBColor> pixelMap = reader.testReader();
 
 			// y loop
 			for (int i = 0; i < maxRowNumber; i++) {
 
 				colNumber = 0;
-				row = sheet.createRow(i);
+				xssfRow = xssfSheet.createRow(i);
 
 				// x loop
 				// paint the color for each pixel
@@ -69,71 +88,34 @@ public class PoiTestApplication {
 					keysList.add(j);
 
 					// get color from pixelMap
-					CellStyle testStyle = null;
-					String colorName = pixelMap.get(keysList);
-					
-					// configure cell information
-					if(colorName != null) {
-						// If the key can be obtained, set the color based on the pixelMap information.
-						testStyle = editCellStyle(book, colorName);
-					} else {
-						// If the key cannot be obtained, paint the cell in black.
-						CellStyle tmpStyle = book.createCellStyle();
-						tmpStyle.setFillForegroundColor(IndexedColors.BLACK1.getIndex());
-						tmpStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-						testStyle = tmpStyle;
-					}
+					HSSFPalette palette = hssfBook.getCustomPalette();
 
-					cell = row.createCell(colNumber++);
-					cell.setCellStyle(testStyle);
+					RGBColor rgbColor;
+					rgbColor = pixelMap.get(keysList);
+
+					int redNumber = rgbColor.getRedNumber();
+					int greenNumber = rgbColor.getGreenNumber();
+					int blueNumber = rgbColor.getBlueNumber();
+
+					HSSFColor pixelColor = palette.findSimilarColor(redNumber, greenNumber, blueNumber);
+					short palIndex = pixelColor.getIndex();
+
+					oneStyle = paletteMap.get(palIndex);
+
+					xssfCell = xssfRow.createCell(colNumber++);
+					xssfCell.setCellStyle(oneStyle);
 
 				}
 
 			}
 
 			// output process
-			book.write(out);
+			xssfBook.write(out);
 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
-	}
-
-	private static CellStyle editCellStyle(Workbook book, String colorName) {
-		// define cell style
-		CellStyle testStyle = book.createCellStyle();
-
-		// judge color
-		switch (colorName) {
-		case "BLACK":
-			testStyle.setFillForegroundColor(IndexedColors.BLACK1.getIndex());
-			break;
-		case "WHITE":
-			testStyle.setFillForegroundColor(IndexedColors.WHITE1.getIndex());
-			break;
-		case "LIGHT_BLUE":
-			testStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
-			break;
-		case "PALE_BLUE":
-			testStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
-			break;
-		case "GREY_25_PERCENT":
-			testStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-			break;
-		case "LEMON_CHIFFON":
-			testStyle.setFillForegroundColor(IndexedColors.LEMON_CHIFFON.getIndex());
-			break;
-		case "YELLOW":
-			testStyle.setFillForegroundColor(IndexedColors.YELLOW.getIndex());
-			break;
-		case "GREY_50_PERCENT":
-			testStyle.setFillForegroundColor(IndexedColors.GREY_50_PERCENT.getIndex());
-			break;
-		}
-
-		testStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-		return testStyle;
 	}
 
 }
